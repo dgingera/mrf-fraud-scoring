@@ -1,0 +1,45 @@
+# Generate a CycloneDX SBOM on every change to main. The Lakewatch collector job picks up the
+# `sbom-cyclonedx` artifact and lands it in the SBOM datasource.
+name: sbom
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate SBOM (syft, CycloneDX JSON)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.raw.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Stamp application metadata
+        run: |
+          jq --arg name "${GITHUB_REPOSITORY#*/}" \
+             --arg repo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+             --arg sha "$GITHUB_SHA" \
+             --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+             '.metadata.component = ((.metadata.component // {}) + {type: "application", name: $name,
+                 externalReferences: [{type: "vcs", url: $repo}]})
+              | .metadata.properties = ((.metadata.properties // []) + [
+                 {name: "mrf:git_commit", value: $sha}, {name: "mrf:pipeline", value: $run}])' \
+             sbom.raw.cdx.json > sbom.cdx.json
+          jq -r '"\(.metadata.component.name): \(.components | length) components"' sbom.cdx.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+          retention-days: 30
