@@ -1,0 +1,3 @@
+description: New payee and high velocity in the last hour
+amount_threshold: 2500
+velocity_1h: 6

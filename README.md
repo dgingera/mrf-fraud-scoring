@@ -1,0 +1,12 @@
+# mrf-fraud-scoring
+
+Real-time transaction fraud scoring for **Maple Ridge Financial**, a fictional bank used in a
+Databricks Lakewatch demo (SBOM-driven supply-chain detection, AI triage, and automated remediation
+pull requests).
+
+> **Demo repository. Intentionally vulnerable.** `PyYAML==5.3.1` is affected by CVE-2020-14343
+> (arbitrary code execution through `yaml.load(..., Loader=FullLoader)`). Do not deploy this code.
+
+- Python 3.12, FastAPI; gradient-boosted model plus YAML rule packs (`app/rules.py`)
+- Rule packs can be hot-reloaded through `POST /admin/rules/{name}`
+- SBOM: GitHub dependency graph (SPDX), pulled into Lakewatch by the demo's collector job
